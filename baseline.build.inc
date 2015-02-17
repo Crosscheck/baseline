@@ -218,3 +218,45 @@ function baseline_replace_permission_ids($permissions) {
   }
   return $permissions;
 }
+
+function baseline_build_users($users) {
+  $accounts = array();
+
+  if (is_array($users) && count($users) > 0) {
+    $role_mapping = variable_get('baseline_user_role_ids', array());
+
+    foreach ($users as $info) {
+      if (!$existing = user_load_by_name($info['name'])) {
+        // Parse basic info.
+        $account = array(
+          'name' => $info['name'],
+          'pass' => $info['pass'],
+          'mail' => $info['mail'],
+          'status' => 1,
+          'init' => 'baseline',
+        );
+        // Parse role info.
+        if (isset($info['roles'])) {
+          $roles = $info['roles'];
+          if (!is_array($roles)) {
+            $roles = explode(',', $roles);
+          }
+          if (is_array($roles) && count($roles)) {
+            foreach ($roles as $role_name) {
+              $role_name = trim($role_name);
+              if (isset($role_mapping[$role_name])) {
+                $rid = $role_mapping[$role_name];
+                $account['roles'][$rid] = $rid;
+              }
+            }
+          }
+        }
+        // Save as account.
+        $account = user_save(null, $account);
+        // Keep track of created accounts.
+        $accounts[$account->name] = $account;
+      }
+    }
+  }
+  return $accounts;
+}
