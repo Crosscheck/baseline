@@ -161,17 +161,8 @@ function baseline_build_user_permissions($roles) {
 
   foreach ($roles as $rid => $permissions) {
     // Find out the role id if a machine name was used.
-    if (!is_numeric($rid)) {
-      if (isset($role_ids[$rid])) {
-        $rid = $role_ids[$rid];
-      }
-      else {
-        // Try to get the rid by machine name for roles not created with baseline.
-        $user_roles = user_roles();
-        if (in_array($rid, $user_roles)) {
-          $rid = array_search($rid, $user_roles);
-        }
-      }
+    if (!is_numeric($rid) && isset($role_ids[$rid])) {
+      $rid = $role_ids[$rid];
     }
     // Replace machine names by their ID within the current environment
     $permissions = baseline_replace_permission_ids($permissions);
@@ -219,44 +210,74 @@ function baseline_replace_permission_ids($permissions) {
   return $permissions;
 }
 
-function baseline_build_users($users) {
-  $accounts = array();
-
-  if (is_array($users) && count($users) > 0) {
-    $role_mapping = variable_get('baseline_user_role_ids', array());
-
-    foreach ($users as $info) {
-      if (!$existing = user_load_by_name($info['name'])) {
-        // Parse basic info.
-        $account = array(
-          'name' => $info['name'],
-          'pass' => $info['pass'],
-          'mail' => $info['mail'],
-          'status' => 1,
-          'init' => 'baseline',
-        );
-        // Parse role info.
-        if (isset($info['roles'])) {
-          $roles = $info['roles'];
-          if (!is_array($roles)) {
-            $roles = explode(',', $roles);
-          }
-          if (is_array($roles) && count($roles)) {
-            foreach ($roles as $role_name) {
-              $role_name = trim($role_name);
-              if (isset($role_mapping[$role_name])) {
-                $rid = $role_mapping[$role_name];
-                $account['roles'][$rid] = $rid;
-              }
-            }
-          }
-        }
-        // Save as account.
-        $account = user_save(null, $account);
-        // Keep track of created accounts.
-        $accounts[$account->name] = $account;
+/**
+ * Create nodequeues.
+ *
+ * @param array $nodeqeueus
+ *   An array of nodeqeues, keyed by machine name.
+ */
+function baseline_build_nodequeues($nodequeues) {
+  foreach ($nodequeues as $nodequeue) {
+    $nodequeue = (object) $nodequeue;
+    // Fetch the nodequeue if it already exists so it can be updated instead of
+    // saved.
+    $existing_nodequeue = nodequeue_load_queue_by_name($nodequeue->name);
+    if (isset($existing_nodequeue->qid)) {
+      $nodequeue->qid = $existing_nodequeue->qid;
+      // Make sure the subqueues aren't added indefinitely.
+      if (isset($nodequeue->add_subqueue)) {
+        unset($nodequeue->add_subqueue);
       }
     }
+    // Save the new or updated nodequeue.
+    nodequeue_save($nodequeue);
   }
-  return $accounts;
+}
+
+
+/**
+ * Creates or updates taxonomy vocabularies.
+ *
+ * @param array $vocabularies
+ *   An array of vocabularies. See the return value of
+ *   hook_baseline_info_taxonomy_vocabularies().
+ */
+function baseline_build_taxonomy_vocabularies($vocabularies) {
+  $existing = taxonomy_vocabulary_get_names();
+  foreach ($vocabularies as $machine_name => $vocabulary) {
+    $vocabulary = (object) $vocabulary;
+    $vocabulary->machine_name = $machine_name;
+    // Check if the vocabulary doesn't already exist so we can update it.
+    if (isset($existing[$machine_name])) {
+      $vocabulary->vid = $existing[$machine_name]->vid;
+    }
+    taxonomy_vocabulary_save($vocabulary);
+  }
+}
+
+/**
+ * Creates or updates taxonomy terms.
+ *
+ * @param array $terms
+ *   An array of terms. See the return value of
+ *   hook_baseline_info_taxonomy_terms().
+ */
+function baseline_build_taxonomy_terms($terms) {
+  $vocabularies = taxonomy_vocabulary_get_names();
+  foreach ($terms as $term) {
+    $term = (object) $term;
+    // Only save the term if it has an existing vocabulary.
+    if (isset($term->vocabulary) && isset($vocabularies[$term->vocabulary])) {
+      $term->vid = $vocabularies[$term->vocabulary]->vid;
+      // Check if a term with the same name in the vocabulary already exists.
+      $existing = taxonomy_get_term_by_name($term->name, $term->vocabulary);
+      if (!empty($existing)) {
+        $first = array_shift($existing);
+        $term->tid = $first->tid;
+      }
+      // Remove the vocabulary property because it's not saved to the db.
+      unset($term->vocabulary);
+      taxonomy_term_save($term);
+    }
+  }
 }

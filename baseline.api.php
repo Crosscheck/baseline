@@ -551,33 +551,3 @@ function hook_baseline_info_taxonomy_terms() {
     ),
   );
 }
-
-/**
- * Define users.
- *
- * @return array
- */
-function hook_baseline_info_users() {
-  $users = array(
-    array(
-      'name' => 'test_webmaster',
-      'pass' => 'test',
-      'mail' => 'support.gent+webmaster@one-agency.be',
-      'roles' => array('webmaster'),
-    ),
-    array(
-      'name' => 'test_editor',
-      'pass' => 'test',
-      'mail' => 'support.gent+webmaster@one-agency.be',
-      'roles' => array('editor'),
-    ),
-    array(
-      'name' => 'tester',
-      'pass' => 'test',
-      'mail' => 'support.gent+webmaster@one-agency.be',
-      'roles' => array('administrator'),
-    )
-  );
-
-  return $users;
-}
