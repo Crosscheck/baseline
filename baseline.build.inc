@@ -6,6 +6,20 @@
  */
 
 /**
+ * Creates aliases
+ *
+ * @param array $alias_info
+ *  Array containing alias info.
+ */
+function baseline_build_aliases($alias_info) {
+  foreach ($alias_info as $source => $alias_language_info) {
+    foreach ($alias_language_info as $langcode => $alias) {
+      baseline_api_create_path_alias($source, $alias, $langcode);
+    }
+  }
+}
+
+/**
  * Creates blocks.
  *
  * @param array $blocks_info
@@ -24,6 +38,18 @@ function baseline_build_blocks($blocks_info) {
 }
 
 /**
+ * Creates nodes.
+ *
+ * @param array $nodes
+ *   Nodes info.
+ */
+function baseline_build_nodes($nodes) {
+  foreach ($nodes as $node) {
+    baseline_api_create_node($node);
+  }
+}
+
+/**
  * Creates menus.
  *
  * @param array
@@ -33,13 +59,7 @@ function baseline_build_menus($menus) {
   foreach ($menus as $menu_info) {
     $query = db_merge('menu_custom')
                 ->key(array('menu_name' => $menu_info['menu_name']))
-                ->fields(array(
-                    'menu_name'   => $menu_info['menu_name'],
-                    'title'       => $menu_info['title'],
-                    'description' => $menu_info['description'],
-                    'language'    => $menu_info['language'],
-                    'i18n_mode'   => $menu_info['i18n_mode'],
-                 ))
+                ->fields($menu_info)
                 ->execute();
   }
 }
@@ -105,10 +125,16 @@ function baseline_build_variables($variables) {
  * @see hook_baseline_info_user_roles().
  */
 function baseline_build_user_roles($roles) {
+  $existing_roles = user_roles(TRUE);
   // Save the role ids so we can save them to a variable.
   $role_id_mapping = array();
   foreach ($roles as $role_name => $role) {
     $role = (object) $role;
+    // If the role exists we update the role.
+    $rid = array_search($role_name, $existing_roles);
+    if ($rid) {
+      $role->rid = $rid;
+    }
     // Save the role to the database.
     user_role_save($role);
     $role_id_mapping[$role_name] = $role->rid;
@@ -130,12 +156,107 @@ function baseline_build_user_roles($roles) {
 function baseline_build_user_permissions($roles) {
   // Fetch the role ids set up by hook_baseline_info_user_permissions().
   $role_ids = variable_get('baseline_user_role_ids', array());
+  // Get a list of existing permissions.
+  $existing_permissions = array_keys(user_permission_get_modules());
+
   foreach ($roles as $rid => $permissions) {
     // Find out the role id if a machine name was used.
-    if (!is_numeric($rid) && isset($role_ids[$rid])) {
-      $rid = $role_ids[$rid];
+    if (!is_numeric($rid)) {
+      if (isset($role_ids[$rid])) {
+        $rid = $role_ids[$rid];
+      }
+      else {
+        // Try to get the rid by machine name for roles not created with baseline.
+        $user_roles = user_roles();
+        if (in_array($rid, $user_roles)) {
+          $rid = array_search($rid, $user_roles);
+        }
+      }
     }
-    // Save the permissions for this role..
+    // Replace machine names by their ID within the current environment
+    $permissions = baseline_replace_permission_ids($permissions);
+    // Filter permissions that don't exists.
+    $permissions = array_intersect($permissions, $existing_permissions);
+    // Save the permissions for this role.
     user_role_grant_permissions($rid, $permissions);
   }
+}
+
+/**
+ * Replaces machine names by IDs in permissions.
+ *
+ * @param array $permissions
+ *   An array of permission names.
+ *
+ * @return array
+ *   An array of permissions with the machine names replaced.
+ */
+function baseline_replace_permission_ids($permissions) {
+  // An array of replacement pattern for each entity type. The key is pattern
+  // and the value the ID type (nid, vid, rid, ...).
+  $replacements = array(
+    'delete terms in ' => 'vid',
+    'edit terms in '=> 'vid',
+  );
+
+  foreach ($permissions as $i => $permission) {
+    foreach ($replacements as $pattern => $key_type) {
+      if (strpos($permission, $pattern) === 0) {
+        $machine_name = drupal_substr($permission, drupal_strlen($pattern));
+        $key = $machine_name;
+        // Look for a vocabulary ID.
+        if ($key_type == 'vid') {
+          $vocabulary = taxonomy_vocabulary_machine_name_load($machine_name);
+          if ($vocabulary) {
+            $key = $vocabulary->vid;
+          }
+        }
+        // Rebuild the permission.
+        $permissions[$i] = $pattern . $key;
+      }
+    }
+  }
+  return $permissions;
+}
+
+function baseline_build_users($users) {
+  $accounts = array();
+
+  if (is_array($users) && count($users) > 0) {
+    $role_mapping = variable_get('baseline_user_role_ids', array());
+
+    foreach ($users as $info) {
+      if (!$existing = user_load_by_name($info['name'])) {
+        // Parse basic info.
+        $account = array(
+          'name' => $info['name'],
+          'pass' => $info['pass'],
+          'mail' => $info['mail'],
+          'status' => 1,
+          'init' => 'baseline',
+        );
+        // Parse role info.
+        if (isset($info['roles'])) {
+          $roles = $info['roles'];
+          if (!is_array($roles)) {
+            $roles = explode(',', $roles);
+          }
+          if (is_array($roles) && count($roles)) {
+            foreach ($roles as $role_name) {
+              $role_name = trim($role_name);
+              if (isset($role_mapping[$role_name])) {
+                $rid = $role_mapping[$role_name];
+                $account['roles'][$rid] = $rid;
+              }
+            }
+          }
+        }
+        // Save as account.
+        $account = user_save(null, $account);
+        // Keep track of created accounts.
+        $accounts[$account->name] = $account;
+      }
+    }
+  }
+  return $accounts;
 }
