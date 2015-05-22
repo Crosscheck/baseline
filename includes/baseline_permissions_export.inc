@@ -427,10 +427,12 @@ class BaselinePermissionsExporter {
 
       if ($key == 'anonymous user') {
         $php_file .= "  " . '$permissions[DRUPAL_ANONYMOUS_RID] = ' . $export . ';' . "\n\n";
-
       }
       else if ($key == 'authenticated user') {
         $php_file .= "  " . '$permissions[DRUPAL_AUTHENTICATED_RID] = ' . $export . ';' . "\n\n";
+      }
+      else if ($key == 'administrator') {
+        $php_file .= "  " . '$permissions[\'' . $key .'\'] = ' . 'array_keys(module_invoke_all(\'permission\'));' . "\n\n";
       }
       else {
         $php_file .= "  " . '$permissions[\'' . $key .'\'] = ' . $export . ';' . "\n\n";

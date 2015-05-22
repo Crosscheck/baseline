@@ -25,7 +25,7 @@ function baseline_drush_command() {
     'examples' => array(
       'drush baseline-export-permissions' => 'export permissions',
     ),
-    'aliases' => array('bpe'),
+    'aliases' => array('bep'),
     'bootstrap' => DRUSH_BOOTSTRAP_DRUSH,
     'arguments' => array(
       'module' => 'The module where the permissions should be exported to.',
