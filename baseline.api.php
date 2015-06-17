@@ -43,10 +43,10 @@ function hook_baseline_finish() {
  */
 function hook_baseline_info_variables() {
   return array(
-    'user_register'             => USER_REGISTER_ADMINISTRATORS_ONLY,
-    'site_name'                 => 'mysitename',
-    'site_slogan'               => 'Myslogan.',
-    'node_admin_theme'          => 1,
+    'user_register' => USER_REGISTER_ADMINISTRATORS_ONLY,
+    'site_name' => 'mysitename',
+    'site_slogan' => 'Myslogan.',
+    'node_admin_theme' => 1,
     'theme_mysitename_settings' => array(
       'toggle_logo' => 1,
       'toggle_name' => 0,
@@ -124,18 +124,18 @@ function hook_baseline_info_nodes() {
 function hook_baseline_info_menus() {
   return array(
     array(
-      'title'       => 'Service menu',
-      'menu_name'   => 'menu-service',
+      'title' => 'Service menu',
+      'menu_name' => 'menu-service',
       'description' => 'The <em>Service</em> menu contains a short list of links and is normally shown at the top of the page and in the footer.',
-      'language'    => LANGUAGE_NONE,
-      'i18n_mode'   => 5,
+      'language' => LANGUAGE_NONE,
+      'i18n_mode' => 5,
     ),
     array(
-      'title'       => 'Main menu',
-      'menu_name'   => 'main-menu',
+      'title' => 'Main menu',
+      'menu_name' => 'main-menu',
       'description' => 'The <em>Main</em> menu is used on many sites to show the major sections of the site, often in a top navigation bar.',
-      'language'    => LANGUAGE_NONE,
-      'i18n_mode'   => 5,
+      'language' => LANGUAGE_NONE,
+      'i18n_mode' => 5,
     ),
   );
 }
@@ -346,17 +346,17 @@ function hook_baseline_info_date_types() {
   return array(
     // Monday 29/03/1980
     array(
-      'type'    => 'day',
-      'title'   => 'Day',
-      'locked'  => '0',
-      'format'  => 'l d/m/Y',
+      'type' => 'day',
+      'title' => 'Day',
+      'locked' => '0',
+      'format' => 'l d/m/Y',
     ),
     // Monday 29/03/1980 20:50
     array(
-      'type'    => 'day_hour',
-      'title'   => 'Day and hour',
-      'locked'  => '0',
-      'format'  => 'l d/m/Y - G:i',
+      'type' => 'day_hour',
+      'title' => 'Day and hour',
+      'locked' => '0',
+      'format' => 'l d/m/Y - G:i',
     ),
   );
 }
@@ -507,11 +507,11 @@ function hook_baseline_info_taxonomy_vocabularies() {
 /**
  * Define taxonomy terms.
  *
- * Note that this will update terms if a term with the exact same name exists
- * in the vocabulary.
+ * This will insert terms if a term with the exact same name does not exists in
+ * the vocabulary yet.
  *
  * @return array
- *   An array of taxonomy term arrays, each having the following keys:
+ *   An array of taxonomy term objects, each having the following variables:
  *   - name: The human readable name of the term.
  *   - vocabulary: The machine name of the vocabulary the term belongs to.
  *   - description: The description of the term (optional).
