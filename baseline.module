@@ -29,6 +29,7 @@ function baseline_build() {
   baseline_build_user_roles(baseline_get_info('user_roles'));
   baseline_build_user_permissions(baseline_get_info('user_permissions'));
   baseline_build_users(baseline_get_info('users'));
+  baseline_build_taxonomy_terms(baseline_get_info('taxonomy_terms'));
   baseline_finish();
 }
 
@@ -45,8 +46,15 @@ function baseline_build() {
 function baseline_api_create_path_alias($source, $alias, $langcode) {
   // Check if an alias is already provided for this source and langcode
   // combination.
-  $existing_alias = path_load(array('source' => $source, 'language' => $langcode));
-  $alias = array('source' => $source, 'alias' => $alias, 'language' => $langcode);
+  $existing_alias = path_load(array(
+    'source' => $source,
+    'language' => $langcode
+  ));
+  $alias = array(
+    'source' => $source,
+    'alias' => $alias,
+    'language' => $langcode
+  );
   if ($existing_alias !== FALSE) {
     $alias['pid'] = $existing_alias['pid'];
   }
@@ -62,15 +70,15 @@ function baseline_api_create_path_alias($source, $alias, $langcode) {
  */
 function baseline_api_create_block($block_info) {
   $fields = array(
-    'module'  => $block_info['module'],
-    'delta'   => $block_info['delta'],
-    'theme'   => $block_info['theme'],
-    'status'  => $block_info['status'],
-    'weight'  => $block_info['weight'],
-    'region'  => $block_info['region'],
-    'title'   => $block_info['title'],
-    'pages'   => $block_info['pages'],
-    'cache'   => $block_info['cache'],
+    'module' => $block_info['module'],
+    'delta' => $block_info['delta'],
+    'theme' => $block_info['theme'],
+    'status' => $block_info['status'],
+    'weight' => $block_info['weight'],
+    'region' => $block_info['region'],
+    'title' => $block_info['title'],
+    'pages' => $block_info['pages'],
+    'cache' => $block_info['cache'],
   );
 
   if (module_exists('i18n_block') && isset($block_info['i18n_mode'])) {
@@ -83,7 +91,11 @@ function baseline_api_create_block($block_info) {
       ->condition('module', $block_info['module'])
       ->condition('delta', $block_info['delta'])
       ->execute();
-    $query = db_insert('block_node_type')->fields(array('type', 'module', 'delta'));
+    $query = db_insert('block_node_type')->fields(array(
+      'type',
+      'module',
+      'delta'
+    ));
     foreach (array_filter($block_info['types']) as $type) {
       $query->values(array(
         'type' => $type,
@@ -95,7 +107,11 @@ function baseline_api_create_block($block_info) {
   }
 
   $query = db_merge('block')
-    ->key(array('module' => $block_info['module'], 'delta' => $block_info['delta'], 'theme' => $block_info['theme']))
+    ->key(array(
+      'module' => $block_info['module'],
+      'delta' => $block_info['delta'],
+      'theme' => $block_info['theme']
+    ))
     ->fields($fields)
     ->execute();
 }
@@ -110,10 +126,11 @@ function baseline_api_create_custom_block($block_info) {
   baseline_api_create_block($block_info);
   db_merge('block_custom')
     ->key(array('bid' => $block_info['delta']))
-    ->fields(array('bid' => $block_info['delta'],
-      'body' => $block_info['body'],
-      'info' => $block_info['info'],
-      'format' => $block_info['format'],
+    ->fields(array(
+        'bid' => $block_info['delta'],
+        'body' => $block_info['body'],
+        'info' => $block_info['info'],
+        'format' => $block_info['format'],
       )
     )
     ->execute();
@@ -148,7 +165,8 @@ function baseline_api_create_date_format($format) {
     ->fields(array(
       'format' => $format['format'],
       'type' => 'custom',
-      'locked' => 0))
+      'locked' => 0
+    ))
     ->execute();
 }
 
@@ -173,7 +191,7 @@ function baseline_api_create_date_type($type) {
  * Creates a basic node.
  *
  * @param array $node
- *   Array containing node information:
+ *     Array containing node information:
  *     - nid
  *     - title
  *     - type
@@ -205,15 +223,15 @@ function baseline_api_create_node($node) {
  * menu links will be updated, others will be inserted.
  *
  * @param array $menu_link_info
- *   Info about the menu link. Contains:
- *   - menu_name
- *   - link_title
- *   - link_name
- *   - weight
- *   - new
- *   - options: (optional) An array of options, see l() for more.
- *   - router_path: (optional) The path of the relevant router item (new link)
- *   - parent: (optional) Info about the parent. Contains:
+ *     Info about the menu link. Contains:
+ *     - menu_name
+ *     - link_title
+ *     - link_name
+ *     - weight
+ *     - new
+ *     - options: (optional) An array of options, see l() for more.
+ *     - router_path: (optional) The path of the relevant router item (new link)
+ *     - parent: (optional) Info about the parent. Contains:
  *     - menu_name: Name of the parent menu.
  *     - path: Path of the parent.
  */
@@ -247,11 +265,11 @@ function baseline_api_create_menu_link($menu_link_info) {
   // considered stale?
   if ($mlid) {
     db_update('menu_links')
-    ->fields(array(
-    'customized' => 1,
-    ))
-    ->condition('mlid', $mlid)
-    ->execute();
+      ->fields(array(
+        'customized' => 1,
+      ))
+      ->condition('mlid', $mlid)
+      ->execute();
   }
 }
 

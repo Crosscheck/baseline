@@ -58,9 +58,9 @@ function baseline_build_nodes($nodes) {
 function baseline_build_menus($menus) {
   foreach ($menus as $menu_info) {
     $query = db_merge('menu_custom')
-                ->key(array('menu_name' => $menu_info['menu_name']))
-                ->fields($menu_info)
-                ->execute();
+      ->key(array('menu_name' => $menu_info['menu_name']))
+      ->fields($menu_info)
+      ->execute();
   }
 }
 
@@ -196,7 +196,7 @@ function baseline_replace_permission_ids($permissions) {
   // and the value the ID type (nid, vid, rid, ...).
   $replacements = array(
     'delete terms in ' => 'vid',
-    'edit terms in '=> 'vid',
+    'edit terms in ' => 'vid',
   );
 
   foreach ($permissions as $i => $permission) {
@@ -252,11 +252,45 @@ function baseline_build_users($users) {
           }
         }
         // Save as account.
-        $account = user_save(null, $account);
+        $account = user_save(NULL, $account);
         // Keep track of created accounts.
         $accounts[$account->name] = $account;
       }
     }
   }
   return $accounts;
+}
+
+/**
+ * @param array $terms
+ *    An array of terms to create if they do not exist yet.
+ *
+ * @return array
+ *    An array of term objects, matching the param $terms.
+ */
+function baseline_build_taxonomy_terms($terms) {
+  $return_terms = array();
+
+  foreach ($terms as $delta => $term) {
+    $term_exists = taxonomy_get_term_by_name($term['name'], $term['vocabulary']);
+
+    // Create term if it does not exists.
+    if (empty($term_exists)) {
+      if ($voc = taxonomy_vocabulary_machine_name_load($term['vocabulary'])) {
+        $term_new = new stdClass();
+        $term_new->vid = $voc->vid;
+        $term_new->name = $term['name'];
+        taxonomy_term_save($term_new);
+        if (isset($term_new->tid)) {
+          drupal_set_message(t('Baseline: inserted term "!name".', array('!name' => $term['name'])));
+          $return_terms[] = $term_new;
+        }
+      }
+    }
+    else {
+      $return_terms[] = $term_exists;
+    }
+  }
+
+  return $return_terms;
 }
